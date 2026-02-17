@@ -5,28 +5,26 @@
 ## 服务器要求
 
 - **操作系统**: Ubuntu 20.04+ 或其他Linux发行版
-- **内存**: 4GB+ (Puppeteer需要)
+- **Node.js**: 20.x+
+- **内存**: 2GB+
 - **CPU**: 2核+
 - **磁盘**: 2GB+
 
 ## 快速部署
 
-### 1. 运行部署脚本
+### 1. 克隆项目
 
 ```bash
 # 克隆项目到服务器
-git clone <repository-url> /var/www/random-movie
+git clone https://github.com/ShareWinter/randomMovie.git /var/www/random-movie
 cd /var/www/random-movie
-
-# 运行部署脚本
-chmod +x deploy/deploy.sh
-sudo ./deploy/deploy.sh
 ```
 
-### 2. 配置环境变量
+### 2. 配置环境变量（重要！）
+
+**必须在启动前创建 `.env.local` 文件**：
 
 ```bash
-cd /var/www/random-movie
 cp .env.local.example .env.local
 nano .env.local
 ```
@@ -34,15 +32,25 @@ nano .env.local
 编辑以下配置:
 
 ```env
+# MongoDB 连接字符串
 MONGODB_URI=mongodb://localhost:27017/random-movie
-NEXTAUTH_URL=https://your-domain.com
-NEXTAUTH_SECRET=your-secret-key
+
+# NextAuth 配置 - 必须是用户访问的实际地址
+NEXTAUTH_URL=http://你的服务器IP:3000
+
+# NextAuth 密钥 - 至少32字符的随机字符串
+NEXTAUTH_SECRET=your-super-secret-key-at-least-32-characters
 ```
 
-**生成NEXTAUTH_SECRET**:
+**生成 NEXTAUTH_SECRET**:
 ```bash
 openssl rand -base64 32
 ```
+
+**注意事项**：
+- `NEXTAUTH_URL` 必须是用户访问的实际地址（包含协议和端口）
+- `NEXTAUTH_SECRET` 必须至少 32 字符
+- 如果没有配置这些环境变量，会报错：`There was a problem with the server configuration`
 
 ### 3. 安装依赖和构建
 
@@ -95,15 +103,6 @@ sudo certbot renew --dry-run
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
-```
-
-### 安装Puppeteer依赖
-
-```bash
-sudo apt-get install -y \
-  libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 \
-  libxcomposite1 libxdamage1 libxrandr2 libgbm1 libpango-1.0-0 \
-  libcairo2 libasound2 libnspr4 libnss3
 ```
 
 ### 安装MongoDB
@@ -169,11 +168,31 @@ pm2 restart random-movie
 2. 检查端口占用: `lsof -i:3000`
 3. 检查环境变量: `cat .env.local`
 
-### Puppeteer无法启动
+### NextAuth 配置错误
 
-1. 确认系统依赖已安装
-2. 检查内存是否充足
-3. 查看错误日志
+错误信息：`There was a problem with the server configuration`
+
+**解决方案**：
+
+1. 确保 `.env.local` 文件存在且配置正确：
+   ```bash
+   cat .env.local
+   ```
+
+2. 确保以下环境变量已设置：
+   - `NEXTAUTH_URL` - 必须是用户访问的实际地址
+   - `NEXTAUTH_SECRET` - 至少 32 字符的随机字符串
+   - `MONGODB_URI` - MongoDB 连接字符串
+
+3. 如果使用 IP 地址访问，确保 `NEXTAUTH_URL` 包含正确的 IP 和端口：
+   ```env
+   NEXTAUTH_URL=http://172.22.206.181:3000
+   ```
+
+4. 重启应用：
+   ```bash
+   pm2 restart random-movie
+   ```
 
 ### 数据库连接失败
 
@@ -183,9 +202,43 @@ pm2 restart random-movie
 
 ### Socket.io连接失败
 
-1. 检查Nginx WebSocket配置
-2. 确认防火墙允许WebSocket连接
-3. 查看浏览器控制台错误
+**症状**：参与者列表不同步、影片选择不更新
+
+**排查步骤**：
+
+1. 检查服务器是否正常运行：
+   ```bash
+   pm2 logs random-movie | grep -E "(Client connected|join-room)"
+   ```
+
+2. 检查浏览器控制台是否有 WebSocket 错误
+
+3. 确保 Nginx WebSocket 配置正确（如果使用 Nginx）：
+   ```nginx
+   location /socket.io/ {
+       proxy_http_version 1.1;
+       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Connection "upgrade";
+       proxy_pass http://localhost:3000;
+   }
+   ```
+
+4. 检查防火墙是否阻止 WebSocket 连接
+
+5. 如果 Socket 连接超时，检查服务器日志：
+   ```bash
+   pm2 logs random-movie --lines 100
+   ```
+
+### 参与者数据不同步
+
+**症状**：切换标签页后选择被清除、其他参与者看不到更新
+
+**解决方案**：
+
+1. 检查 Socket 连接状态（浏览器控制台应显示 `[Socket] Connected`）
+2. 检查服务器是否收到事件（服务器终端应显示 `[join-room]` 等日志）
+3. 确保网络稳定，WebSocket 连接未中断
 
 ## 性能优化
 
@@ -277,6 +330,37 @@ tar -czf random-movie-backup-$(date +%Y%m%d).tar.gz /var/www/random-movie
 3. 使用强密码和密钥认证
 4. 启用HTTPS
 5. 定期备份数据
+6. 不要将 `.env.local` 文件提交到版本控制
+
+## 网络问题
+
+### Git 推送失败
+
+如果遇到 `TLS connection was non-properly terminated` 或连接超时：
+
+1. **使用 SSH 方式**（推荐）：
+   ```bash
+   # 生成 SSH 密钥
+   ssh-keygen -t ed25519 -C "your_email@example.com"
+
+   # 查看公钥并复制到 GitHub Settings > SSH Keys
+   cat ~/.ssh/id_ed25519.pub
+
+   # 切换远程地址
+   git remote set-url origin git@github.com:ShareWinter/randomMovie.git
+   ```
+
+2. **配置代理**（如果有）：
+   ```bash
+   git config --global http.proxy http://127.0.0.1:7890
+   ```
+
+3. **增加超时时间**：
+   ```bash
+   git config --global http.postBuffer 524288000
+   git config --global http.lowSpeedLimit 1000
+   git config --global http.lowSpeedTime 300
+   ```
 
 ## 相关链接
 

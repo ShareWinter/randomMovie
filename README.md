@@ -19,7 +19,6 @@
 - MongoDB + Mongoose
 - NextAuth.js v5
 - Socket.io
-- Puppeteer
 
 ## 开始使用
 
