@@ -1,0 +1,11 @@
+{
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
+  "rules": {
+    "no-var": "off",
+    "prefer-const": "off",
+    "react-hooks/exhaustive-deps": "off"
+  }
+}

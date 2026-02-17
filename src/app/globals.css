@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;500;600;700&family=Patrick+Hand&family=Indie+Flower&display=swap');
+
+:root {
+  --foreground-rgb: 45, 55, 72;
+  --background-start-rgb: 255, 254, 245;
+  --background-end-rgb: 255, 248, 220;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+@layer utilities {
+  .notebook-bg {
+    background-color: #FFFEF5;
+    background-image:
+      repeating-linear-gradient(transparent, transparent 27px, #E8E8E8 28px),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+  }
+
+  .sketch-shadow {
+    box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 0.2);
+  }
+
+  .sketch-shadow-lg {
+    box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 0.25);
+  }
+
+  .sketch-underline {
+    position: relative;
+    display: inline-block;
+  }
+
+  .sketch-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='10'%3E%3Cpath d='M0 5 Q25 2 50 5 T100 5' stroke='%23f59e0b' fill='none' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-size: 100% 100%;
+  }
+}
+
+/* 手绘风格动画 */
+@keyframes sketch-wiggle {
+  0%, 100% { transform: rotate(-0.5deg); }
+  50% { transform: rotate(0.5deg); }
+}
+
+.sketch-wiggle {
+  animation: sketch-wiggle 3s ease-in-out infinite;
+}
+
+/* 手绘风格卡片 */
+.sketch-card {
+  position: relative;
+  background: #fff;
+  border: 3px solid #d1d5db;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.sketch-card::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  background:
+    linear-gradient(90deg, transparent 95%, rgba(0,0,0,0.1) 100%);
+  border-radius: 12px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.sketch-card:hover::before {
+  opacity: 1;
+}
+
+/* 手绘风格按钮 */
+.sketch-button {
+  position: relative;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.2s ease;
+}
+
+.sketch-button::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 3px dashed rgba(0, 0, 0, 0.2);
+  border-radius: inherit;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.sketch-button:hover::after {
+  opacity: 1;
+}
